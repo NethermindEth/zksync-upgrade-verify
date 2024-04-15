@@ -1,8 +1,13 @@
+#[macro_use]
+extern crate lazy_static;
+
 use clap::{Parser, Subcommand};
+mod info;
+mod init_upgrade;
+mod trace;
 
-mod debug_trace_transaction;
-
-use crate::debug_trace_transaction::debug_trace_transaction;
+use crate::info::info;
+use crate::trace::trace;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -14,20 +19,33 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Make `debug_traceTransaction` JSON-RPC request
-    TraceTransaction {
+    Trace {
         /// Ethereum JSON-RPC endpoint
-        #[arg(long = "rpc", required = true)]
-        rpc: String,
+        #[arg(long = "rpc-url", short = 'r', required = true)]
+        rpc_url: String,
         /// Transaction hash
-        #[arg(required = true)]
-        tx: String,
+        #[arg(long = "tx-hash", short = 't', required = true)]
+        tx_hash: String,
+    },
+    Info {
+        /// Ethereum JSON-RPC endpoint
+        #[arg(long = "rpc-url", short = 'r', required = true)]
+        rpc_url: String,
+        /// Transaction hash
+        #[arg(long = "tx-hash", short = 't', required = true)]
+        tx_hash: String,
     },
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
     match &cli.command {
-        Commands::TraceTransaction { rpc, tx } => debug_trace_transaction(rpc, tx),
+        Commands::Trace { rpc_url, tx_hash } => {
+            if let Err(err) = trace(rpc_url, tx_hash).await {
+                eprintln!("Main Error: {}", err);
+            }
+        }
+        Commands::Info { rpc_url, tx_hash } => info(rpc_url, tx_hash).await,
     };
 }
