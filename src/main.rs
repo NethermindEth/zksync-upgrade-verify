@@ -1,13 +1,10 @@
-#[macro_use]
-extern crate lazy_static;
-
 use clap::{Parser, Subcommand};
-mod info;
-mod init_upgrade;
-mod trace;
+mod l2_contracts_names;
+mod parse_upgrade_tx;
+mod slots_names;
+mod upgrade_abi;
 
-use crate::info::info;
-use crate::trace::trace;
+use crate::parse_upgrade_tx::parse_upgrade_tx;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -19,14 +16,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Trace {
-        /// Ethereum JSON-RPC endpoint
-        #[arg(long = "rpc-url", short = 'r', required = true)]
-        rpc_url: String,
-        /// Transaction hash
-        #[arg(long = "tx-hash", short = 't', required = true)]
-        tx_hash: String,
-    },
+    /// Get upgrade info
     Info {
         /// Ethereum JSON-RPC endpoint
         #[arg(long = "rpc-url", short = 'r', required = true)]
@@ -41,11 +31,10 @@ enum Commands {
 async fn main() {
     let cli = Cli::parse();
     match &cli.command {
-        Commands::Trace { rpc_url, tx_hash } => {
-            if let Err(err) = trace(rpc_url, tx_hash).await {
-                eprintln!("Main Error: {}", err);
+        Commands::Info { rpc_url, tx_hash } => {
+            if let Err(err) = parse_upgrade_tx(tx_hash, rpc_url).await {
+                eprintln!("Parse upgrade transaction error: {}", err);
             }
         }
-        Commands::Info { rpc_url, tx_hash } => info(rpc_url, tx_hash).await,
     };
 }

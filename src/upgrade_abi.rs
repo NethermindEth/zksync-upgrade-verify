@@ -1,4 +1,23 @@
-pub use init_upgrade::*;
+use ethers::contract::abigen;
+pub use upgrade_abi::*;
+
+abigen!(
+    Contract,
+    r#"[
+        function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signature)       
+
+        struct Call {address target;uint256 value;bytes data;}
+        struct Operation {Call[] calls;bytes32 predecessor;bytes32 salt;}
+        function execute(Operation calldata _operation) external payable
+
+        struct FacetCut {address facet;uint8 action;bool isFreezable;bytes4[] selectors;}
+        struct DiamondCutData {FacetCut[] facetCuts;address initAddress;bytes initCalldata;}
+        function executeUpgrade(DiamondCutData calldata _diamondCut) external
+
+        struct ForceDeployment {bytes32 bytecodeHash;address newAddress;bool callConstructor;uint256 value;bytes input;}
+        function forceDeployOnAddresses(ForceDeployment[] calldata _deployParams) external
+  ]"#,
+);
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
 #[allow(
@@ -9,7 +28,7 @@ pub use init_upgrade::*;
     dead_code,
     non_camel_case_types
 )]
-pub mod init_upgrade {
+pub mod upgrade_abi {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
