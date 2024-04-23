@@ -4,6 +4,18 @@ use ethers::types::{Address, H160};
 // https://github.com/matter-labs/era-contracts/blob/4aa7006153ad571643342dff22c16eaf4a70fdc1/system-contracts/contracts/Constants.sol#L36
 pub fn get_system_contract_name(address: &Address) -> String {
     match address {
+        H160([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01]) => {
+            "ECRECOVER_SYSTEM_CONTRACT".to_string()
+        }
+        H160([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02]) => {
+            "SHA256_SYSTEM_CONTRACT".to_string()
+        }
+        H160([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x06]) => {
+            "ECADD_SYSTEM_CONTRACT".to_string()
+        }
+        H160([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x07]) => {
+            "ECMUL_SYSTEM_CONTRACT".to_string()
+        }
         H160([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80, 0x01]) => {
             "BOOTLOADER_FORMAL_ADDRESS".to_string()
         }

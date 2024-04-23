@@ -47,7 +47,7 @@ pub fn insert_facets_and_isfrozen_slots(
     let mut encoded_32: [u8; 32] = ENCODED_SELECTOR[32..]
         .try_into()
         .expect("Array must be of length 32");
-    // move to DiamondStorage.facets[] slot. Offset is 2. 
+    // move to DiamondStorage.facets[] slot. Offset is 2.
     // It is array length
     encoded_32[31] += 2;
     slot_names_map.insert(H256(encoded_32), format!("DimondStorage.facets.length"));
@@ -63,7 +63,7 @@ pub fn insert_facets_and_isfrozen_slots(
             add_one_to_big_number(&mut faucet_arr_slot);
         }
     }
-    // move to DiamondStorage.isFrozen slot. Offset is 3. 
+    // move to DiamondStorage.isFrozen slot. Offset is 3.
     encoded_32[31] += 1;
     slot_names_map.insert(H256(encoded_32), format!("DimondStorage.isFrozen"));
 }
@@ -212,7 +212,13 @@ pub fn get_storage_slot_name(slot: &H256) -> Option<String> {
         ) => Some("__DEPRECATED_allowList".to_string()),
         H256(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20],
-        ) => Some("verifierParams".to_string()),
+        ) => Some("verifierParams.recursionNodeLevelVkHash".to_string()),
+        H256(
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 21],
+        ) => Some("verifierParams.recursionLeafLevelVkHash".to_string()),
+        H256(
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 22],
+        ) => Some("verifierParams.recursionCircuitsSetVksHash".to_string()),
         H256(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23],
         ) => Some("l2BootloaderBytecodeHash".to_string()),

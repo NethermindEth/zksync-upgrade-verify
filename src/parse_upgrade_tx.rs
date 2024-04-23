@@ -49,6 +49,41 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
         .await
         .map_err(|err| err.to_string())?
         .ok_or("Transaction not found")?;
+    // Decode transaction to multisig 0x4e4943346848c4867F81dFb37c4cA9C5715A7828
+    let tx_input = tx.input;
+    let decoded = ExecTransactionCall::decode(&tx_input)
+        .map_err(|err| format!("ExecTransactionCall error: {}", err.to_string()))?;
+    // todo check governance address decoded.to =  0x0b622A2061EaccAE1c664eBC3E868b8438e03F61
+    //println!("decoded: {:?}", decoded);
+    //ZK_ERA.eq(&decoded.to);
+    let tx_input = if decoded.to == ZK_ERA {
+        decoded.data
+    } else if decoded.to == Address::from_str("0x0b622A2061EaccAE1c664eBC3E868b8438e03F61").unwrap()
+    {
+        // Decode transaction to governance
+        let tx_input = decoded.data;
+        let decoded = ExecuteCall::decode(tx_input)
+            .map_err(|err| format!("ExecuteCall error: {}", err.to_string()))?;
+        // Check governance calls
+        if decoded.operation.calls[0].target != ZK_ERA
+            || decoded.operation.calls.len() != 1
+            || decoded.operation.calls[0].data.sig() != [0xa9, 0xf6, 0xd9, 0x41]
+        {
+            return Err(format!("Unexpected governance call: {}", decoded));
+        }
+        decoded.operation.calls[0].data.clone()
+    } else {
+        return Err(format!("Call to unknown contract: {:02x}", decoded.to));
+    };
+
+    // Decode transaction to zkSync Era Diamond Proxy
+    // We call Admin facet selector 0xa9f6d941
+    //let tx_input = decoded.operation.calls[0].data.clone();
+    //println!("tx_input: {:02x?}",tx_input.sig());
+    let decoded = ExecuteUpgradeCall::decode(tx_input).map_err(|err| err.to_string())?;
+    //println!("some");
+    //return Ok(());
+    // init diff state and storage slots
     // Get upgrade transaction state diff
     let trace = provider
         .trace_replay_transaction(tx_hash, vec![TraceType::StateDiff])
@@ -67,26 +102,6 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
             zk_era_slots_names.insert(*key, name);
         }
     }
-    // Decode transaction to multisig 0x4e4943346848c4867F81dFb37c4cA9C5715A7828
-    let tx_input = tx.input;
-    let decoded = ExecTransactionCall::decode(&tx_input).map_err(|err| err.to_string())?;
-    // todo check governance address decoded.to =  0x0b622A2061EaccAE1c664eBC3E868b8438e03F61
-
-    // Decode transaction to governance
-    let tx_input = decoded.data;
-    let decoded = ExecuteCall::decode(tx_input).map_err(|err| err.to_string())?;
-    // Check governance calls
-    if decoded.operation.calls[0].target != ZK_ERA
-        || decoded.operation.calls.len() != 1
-        || decoded.operation.calls[0].data.sig() != [0xa9, 0xf6, 0xd9, 0x41]
-    {
-        return Err(format!("Unexpected governance call: {}", decoded));
-    }
-
-    // Decode transaction to zkSync Era Diamond Proxy
-    // We call Admin facet selector 0xa9f6d941
-    let tx_input = decoded.operation.calls[0].data.clone();
-    let decoded = ExecuteUpgradeCall::decode(tx_input).map_err(|err| err.to_string())?;
     // check diamond_cut.facet_cuts and save them (check on slots?)
     // we want to see see Faucet delete/add
     if decoded.diamond_cut.facet_cuts.len() % 2 != 0 {
@@ -99,12 +114,13 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     let offset = decoded.diamond_cut.facet_cuts.len() / 2;
     // find slots for DiamondStorage.facets[]
     insert_facets_and_isfrozen_slots(&mut zk_era_slots_names, offset);
-    println!("\x1b[38;5;49mNew Facets:\x1b[0m");
+    if offset > 0 {
+        println!("\x1b[38;5;49mNew Facets:\x1b[0m");
+    }
     for i in 0..offset {
-        if decoded.diamond_cut.facet_cuts[i].selectors
-            != decoded.diamond_cut.facet_cuts[i + offset].selectors
-            && decoded.diamond_cut.facet_cuts[i].action != 0
-            && decoded.diamond_cut.facet_cuts[i + offset].action != 2
+        if decoded.diamond_cut.facet_cuts[i].action != 2
+            || decoded.diamond_cut.facet_cuts[i + offset].action != 0
+        //|| decoded.diamond_cut.facet_cuts[i].selectors != decoded.diamond_cut.facet_cuts[i + offset].selectors
         {
             return Err(format!(
                 "Unexpected facet cut {}: {:?}",
@@ -170,14 +186,6 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     // e.g. https://github.com/matter-labs/era-contracts/blob/4aa7006153ad571643342dff22c16eaf4a70fdc1/l1-contracts/contracts/upgrades/Upgrade_v1_4_1.sol
     let tx_input = decoded.diamond_cut.init_calldata;
     let decoded = UpgradeCall::decode(tx_input).map_err(|err| err.to_string())?;
-    // check l_2_protocol_upgrade_tx.tx_type == 254
-    if decoded.proposed_upgrade.l_2_protocol_upgrade_tx.tx_type != TX_TYPE_UPGGADE {
-        println!("{:?} {}", TX_TYPE_UPGGADE, TX_TYPE_UPGGADE);
-        return Err(format!(
-            "Unexpected L2 protocol upgrade tx_type: {}",
-            decoded.proposed_upgrade.l_2_protocol_upgrade_tx.tx_type
-        ));
-    }
     // todo factory_deps == l_2_protocol_upgrade_tx.factory_deps
     // check bootloader_hash
     if decoded.proposed_upgrade.bootloader_hash != ZERO_HASH {
@@ -219,7 +227,7 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     {
         println!("\x1b[38;5;49mNew verifier_params:\x1b[0m");
         println!(
-            "   \x1b[38;5;117m0xNew recursionNodeLevelVkHash:\x1b[0m {:?}",
+            "   \x1b[38;5;117mNew recursionNodeLevelVkHash:\x1b[0m 0x{}",
             bytes_to_hex_string(
                 &decoded
                     .proposed_upgrade
@@ -228,7 +236,7 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
             )
         );
         println!(
-            "   \x1b[38;5;117m0xNew recursionLeafLevelVkHash:\x1b[0m {:?}",
+            "   \x1b[38;5;117mNew recursionLeafLevelVkHash:\x1b[0m 0x{}",
             bytes_to_hex_string(
                 &decoded
                     .proposed_upgrade
@@ -237,7 +245,7 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
             )
         );
         println!(
-            "   \x1b[38;5;117m0xNew recursionCircuitsSetVksHash:\x1b[0m {:?}",
+            "   \x1b[38;5;117mNew recursionCircuitsSetVksHash:\x1b[0m 0x{}",
             bytes_to_hex_string(
                 &decoded
                     .proposed_upgrade
@@ -289,19 +297,22 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     }
 
     // https://github.com/matter-labs/era-contracts/blob/4aa7006153ad571643342dff22c16eaf4a70fdc1/l2-contracts/contracts/L2ContractHelper.sol#L47
-    let tx_input = decoded.proposed_upgrade.l_2_protocol_upgrade_tx.data;
-    let decoded = ForceDeployOnAddressesCall::decode(tx_input).map_err(|err| err.to_string())?;
-    // show new hashed for system contracts
-    println!("\x1b[38;5;49mSystem contracts:\x1b[0m");
-    for el in decoded.deploy_params {
-        println!(
-            "  \x1b[38;5;117m{} bytecode_hash:\x1b[0m 0x{}",
-            get_system_contract_name(&el.new_address),
-            bytes_to_hex_string(&el.bytecode_hash)
-        );
-        //todo check call_constructor
-        //todo check value
-        //todo check input
+    if decoded.proposed_upgrade.l_2_protocol_upgrade_tx.tx_type == TX_TYPE_UPGGADE {
+        let tx_input = decoded.proposed_upgrade.l_2_protocol_upgrade_tx.data;
+        let decoded =
+            ForceDeployOnAddressesCall::decode(tx_input).map_err(|err| err.to_string())?;
+        // show new hashed for system contracts
+        println!("\x1b[38;5;49mSystem contracts:\x1b[0m");
+        for el in decoded.deploy_params {
+            println!(
+                "  \x1b[38;5;117m{} bytecode_hash:\x1b[0m 0x{}",
+                get_system_contract_name(&el.new_address),
+                bytes_to_hex_string(&el.bytecode_hash)
+            );
+            //todo check call_constructor
+            //todo check value
+            //todo check input
+        }
     }
 
     // output zksync_era_storage_diff

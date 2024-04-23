@@ -1,9 +1,11 @@
 use clap::{Parser, Subcommand};
+mod call_all;
 mod l2_contracts_names;
 mod parse_upgrade_tx;
 mod slots_names;
 mod upgrade_abi;
 
+use crate::call_all::call_all;
 use crate::parse_upgrade_tx::parse_upgrade_tx;
 
 #[derive(Parser)]
@@ -25,6 +27,7 @@ enum Commands {
         #[arg(long = "tx-hash", short = 't', required = true)]
         tx_hash: String,
     },
+    Test {},
 }
 
 #[tokio::main]
@@ -35,6 +38,9 @@ async fn main() {
             if let Err(err) = parse_upgrade_tx(tx_hash, rpc_url).await {
                 eprintln!("Parse upgrade transaction error: {}", err);
             }
+        }
+        Commands::Test {} => {
+            call_all().await;
         }
     };
 }
