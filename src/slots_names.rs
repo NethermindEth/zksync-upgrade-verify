@@ -233,7 +233,11 @@ pub fn get_storage_slot_name(slot: &H256) -> Option<String> {
         ) => Some("priorityTxMaxGasLimit".to_string()),
         H256(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 27],
-        ) => Some("__DEPRECATED_upgrades".to_string()),
+            //https://github.com/matter-labs/era-contracts/blob/a1a05513c110586f7a1d8b5fa46115cc7307587a/l1-contracts/contracts/zksync/Storage.sol#L27
+        ) => Some("__DEPRECATED_upgrades.proposedUpgradeHash".to_string()),
+        H256(
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 28],
+        ) => Some("__DEPRECATED_upgrades.slot(1)".to_string()),
         H256(
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29],
         ) => Some("isEthWithdrawalFinalized".to_string()),
@@ -268,5 +272,25 @@ pub fn get_storage_slot_name(slot: &H256) -> Option<String> {
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39],
         ) => Some("blobVersionedHashRetriever".to_string()),
         _ => None,
+    }
+}
+
+// get facet name from function selector
+pub fn get_facet_name(selector: &[u8;4]) -> Option<String> {
+    match selector {
+        // Admin Facet
+        [14, 24, 182, 129] => Some("Admin".to_string()),
+        // Governance Facet [Deprecated]
+        [229, 139, 182, 57] => Some("Governance".to_string()),
+        // Executor Facet
+        [112, 31, 88, 197] => Some("Executor".to_string()),
+        [12, 77, 216, 16] => Some("Executor".to_string()),
+        // Mailbox Facet
+        [108, 9, 96, 249] => Some("Mailbox".to_string()),
+        // Getters Facet
+        [205, 255, 172, 198] => Some("Getters".to_string()),
+        // DiamondCut Facet [Deprecated]
+        [115, 251, 146, 151] => Some("DiamondCut".to_string()),
+        _ => None
     }
 }

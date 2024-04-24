@@ -1,10 +1,10 @@
 use crate::l2_contracts_names::get_system_contract_name;
 use crate::slots_names::{
     bytes_to_hex_string, get_storage_slot_name, insert_facet_to_selector_slots,
-    insert_facets_and_isfrozen_slots, insert_selector_to_facet_slots,
+    insert_facets_and_isfrozen_slots, insert_selector_to_facet_slots, get_facet_name,
 };
 use crate::upgrade_abi::{
-    ExecTransactionCall, ExecuteCall, ExecuteUpgradeCall, ForceDeployOnAddressesCall, UpgradeCall,
+    ExecTransactionCall, ExecuteCall, ExecuteUpgradeCall, ExecuteUpgradeWithProposalSaltCall, ForceDeployOnAddressesCall, UpgradeCall,
 };
 use ethers::core::abi::AbiDecode;
 use ethers::{
@@ -53,9 +53,7 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     let tx_input = tx.input;
     let decoded = ExecTransactionCall::decode(&tx_input)
         .map_err(|err| format!("ExecTransactionCall error: {}", err.to_string()))?;
-    // todo check governance address decoded.to =  0x0b622A2061EaccAE1c664eBC3E868b8438e03F61
-    //println!("decoded: {:?}", decoded);
-    //ZK_ERA.eq(&decoded.to);
+    // check call address
     let tx_input = if decoded.to == ZK_ERA {
         decoded.data
     } else if decoded.to == Address::from_str("0x0b622A2061EaccAE1c664eBC3E868b8438e03F61").unwrap()
@@ -73,16 +71,18 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
         }
         decoded.operation.calls[0].data.clone()
     } else {
-        return Err(format!("Call to unknown contract: {:02x}", decoded.to));
+        return Err(format!("Call to unknown contract: {:?}", decoded.to));
     };
 
     // Decode transaction to zkSync Era Diamond Proxy
-    // We call Admin facet selector 0xa9f6d941
-    //let tx_input = decoded.operation.calls[0].data.clone();
-    //println!("tx_input: {:02x?}",tx_input.sig());
-    let decoded = ExecuteUpgradeCall::decode(tx_input).map_err(|err| err.to_string())?;
-    //println!("some");
-    //return Ok(());
+    let diamond_cut = match tx_input.sig() {
+        //AdminFacet - new
+        [169, 246, 217, 65]=> ExecuteUpgradeCall::decode(tx_input.clone()).map_err(|err| err.to_string())?.diamond_cut,
+        //DiamondCutFacet - old
+        [54, 212, 235, 132] => ExecuteUpgradeWithProposalSaltCall::decode(tx_input.clone()).map_err(|err| err.to_string())?.diamond_cut,
+        _ => return Err("Unknown facet function selector".to_string()),
+    };
+
     // init diff state and storage slots
     // Get upgrade transaction state diff
     let trace = provider
@@ -104,36 +104,36 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     }
     // check diamond_cut.facet_cuts and save them (check on slots?)
     // we want to see see Faucet delete/add
-    if decoded.diamond_cut.facet_cuts.len() % 2 != 0 {
+    if diamond_cut.facet_cuts.len() % 2 != 0 {
         return Err(format!(
             "Unexpected number of facets: {:?}",
-            decoded.diamond_cut.facet_cuts
+            diamond_cut.facet_cuts
         ));
     }
     // delete selector i first and then add selector i + len/2.
-    let offset = decoded.diamond_cut.facet_cuts.len() / 2;
+    let offset = diamond_cut.facet_cuts.len() / 2;
     // find slots for DiamondStorage.facets[]
     insert_facets_and_isfrozen_slots(&mut zk_era_slots_names, offset);
     if offset > 0 {
         println!("\x1b[38;5;49mNew Facets:\x1b[0m");
     }
+
     for i in 0..offset {
-        if decoded.diamond_cut.facet_cuts[i].action != 2
-            || decoded.diamond_cut.facet_cuts[i + offset].action != 0
-        //|| decoded.diamond_cut.facet_cuts[i].selectors != decoded.diamond_cut.facet_cuts[i + offset].selectors
+        if diamond_cut.facet_cuts[i].action != 2
+            || diamond_cut.facet_cuts[i + offset].action != 0
         {
             return Err(format!(
                 "Unexpected facet cut {}: {:?}",
-                i, decoded.diamond_cut.facet_cuts
+                i, diamond_cut.facet_cuts
             ));
         }
 
         // find facetToSelector slots for new facet address
         let slot_count: i32 =
-            decoded.diamond_cut.facet_cuts[i + offset].selectors.len() as i32 / 8 + 1;
+            diamond_cut.facet_cuts[i + offset].selectors.len() as i32 / 8 + 1;
         insert_facet_to_selector_slots(
             &mut zk_era_slots_names,
-            &decoded.diamond_cut.facet_cuts[i + offset].facet,
+            &diamond_cut.facet_cuts[i + offset].facet,
             slot_count,
         );
 
@@ -142,51 +142,42 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
         let old_facet_address: Option<H160> = insert_selector_to_facet_slots(
             &mut zk_era_slots_names,
             zksync_era_storage_diff,
-            &decoded.diamond_cut.facet_cuts[i + offset].selectors,
+            &diamond_cut.facet_cuts[i + offset].selectors,
         );
 
         // find facet to selector for old facet address
         if let Some(old_addr) = old_facet_address {
-            let slot_count: i32 = decoded.diamond_cut.facet_cuts[i].selectors.len() as i32 / 8 + 1;
+            let slot_count: i32 = diamond_cut.facet_cuts[i].selectors.len() as i32 / 8 + 1;
             insert_facet_to_selector_slots(&mut zk_era_slots_names, &old_addr, slot_count);
         }
 
-        // We get selector by first slot todo: improve approach
-        let name = match decoded.diamond_cut.facet_cuts[i].selectors[0] {
-            [14, 24, 182, 129] => "Admin Facet".to_string(),
-            [205, 255, 172, 198] => "Getters Facet".to_string(),
-            [108, 9, 96, 249] => "Mailbox Facet".to_string(),
-            [112, 31, 88, 197] => "Executor Facet".to_string(),
-            _ => format!(
-                "Unknown facet: {:?}",
-                decoded.diamond_cut.facet_cuts[i].selectors
-            ),
-        };
+        // We get selector by first slot todo: Improvement needed
+        let name = get_facet_name(&diamond_cut.facet_cuts[i].selectors[0])
+            .unwrap_or_else(|| format!("Unknown facet: {:?}", diamond_cut.facet_cuts[i].selectors));
         println!(
             "  \x1b[38;5;117m{}\x1b[0m 0x{:02x}",
             name,
-            decoded.diamond_cut.facet_cuts[i + offset].facet
+            diamond_cut.facet_cuts[i + offset].facet
         );
     }
     // print init_address for delecatecall
     println!(
         "\x1b[38;5;49mUpgrade contract address:\x1b[0m 0x{:02x}",
-        decoded.diamond_cut.init_address
+        diamond_cut.init_address
     );
     // check init_calldata: msg.sig==0x1ed824a0
     // It is not necessary, but we can't decode calls otherwise
-    if decoded.diamond_cut.init_calldata.sig() != [0x1e, 0xd8, 0x24, 0xa0] {
+    if diamond_cut.init_calldata.sig() != [0x1e, 0xd8, 0x24, 0xa0] {
         return Err(format!(
             "Unexpected init method signature : {}",
-            decoded.diamond_cut.init_calldata
+            diamond_cut.init_calldata
         ));
     }
 
     // delecatecall upgrade contract (init_address)
     // e.g. https://github.com/matter-labs/era-contracts/blob/4aa7006153ad571643342dff22c16eaf4a70fdc1/l1-contracts/contracts/upgrades/Upgrade_v1_4_1.sol
-    let tx_input = decoded.diamond_cut.init_calldata;
+    let tx_input = diamond_cut.init_calldata;
     let decoded = UpgradeCall::decode(tx_input).map_err(|err| err.to_string())?;
-    // todo factory_deps == l_2_protocol_upgrade_tx.factory_deps
     // check bootloader_hash
     if decoded.proposed_upgrade.bootloader_hash != ZERO_HASH {
         println!(
@@ -309,9 +300,6 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
                 get_system_contract_name(&el.new_address),
                 bytes_to_hex_string(&el.bytecode_hash)
             );
-            //todo check call_constructor
-            //todo check value
-            //todo check input
         }
     }
 

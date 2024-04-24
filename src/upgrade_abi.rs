@@ -13,7 +13,8 @@ abigen!(
         struct FacetCut {address facet;uint8 action;bool isFreezable;bytes4[] selectors;}
         struct DiamondCutData {FacetCut[] facetCuts;address initAddress;bytes initCalldata;}
         function executeUpgrade(DiamondCutData calldata _diamondCut) external
-
+        function executeUpgrade(DiamondCutData calldata _diamondCut, bytes32 _proposalSalt) external
+        
         struct ForceDeployment {bytes32 bytecodeHash;address newAddress;bool callConstructor;uint256 value;bytes input;}
         function forceDeployOnAddresses(ForceDeployment[] calldata _deployParams) external
   ]"#,
