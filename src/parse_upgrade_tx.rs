@@ -1,10 +1,11 @@
 use crate::l2_contracts_names::get_system_contract_name;
 use crate::slots_names::{
-    bytes_to_hex_string, get_storage_slot_name, insert_facet_to_selector_slots,
-    insert_facets_and_isfrozen_slots, insert_selector_to_facet_slots, get_facet_name,
+    bytes_to_hex_string, get_facet_name, get_storage_slot_name, insert_facet_to_selector_slots,
+    insert_facets_and_isfrozen_slots, insert_selector_to_facet_slots,
 };
 use crate::upgrade_abi::{
-    ExecTransactionCall, ExecuteCall, ExecuteUpgradeCall, ExecuteUpgradeWithProposalSaltCall, ForceDeployOnAddressesCall, UpgradeCall,
+    ExecTransactionCall, ExecuteCall, ExecuteUpgradeCall, ExecuteUpgradeWithProposalSaltCall,
+    ForceDeployOnAddressesCall, UpgradeCall,
 };
 use ethers::core::abi::AbiDecode;
 use ethers::{
@@ -35,6 +36,7 @@ const ZK_ERA: H160 = H160([
     0x0a, 0x00, 0x03, 0x24,
 ]);
 // Upgrade tx type = 254
+// Little-endian large integer.
 const TX_TYPE_UPGGADE: U256 = U256([0xfe, 0, 0, 0]);
 // Zero hash
 const ZERO_HASH: [u8; 32] = [0; 32];
@@ -77,9 +79,17 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     // Decode transaction to zkSync Era Diamond Proxy
     let diamond_cut = match tx_input.sig() {
         //AdminFacet - new
-        [169, 246, 217, 65]=> ExecuteUpgradeCall::decode(tx_input.clone()).map_err(|err| err.to_string())?.diamond_cut,
+        [169, 246, 217, 65] => {
+            ExecuteUpgradeCall::decode(tx_input.clone())
+                .map_err(|err| err.to_string())?
+                .diamond_cut
+        }
         //DiamondCutFacet - old
-        [54, 212, 235, 132] => ExecuteUpgradeWithProposalSaltCall::decode(tx_input.clone()).map_err(|err| err.to_string())?.diamond_cut,
+        [54, 212, 235, 132] => {
+            ExecuteUpgradeWithProposalSaltCall::decode(tx_input.clone())
+                .map_err(|err| err.to_string())?
+                .diamond_cut
+        }
         _ => return Err("Unknown facet function selector".to_string()),
     };
 
@@ -119,9 +129,7 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     }
 
     for i in 0..offset {
-        if diamond_cut.facet_cuts[i].action != 2
-            || diamond_cut.facet_cuts[i + offset].action != 0
-        {
+        if diamond_cut.facet_cuts[i].action != 2 || diamond_cut.facet_cuts[i + offset].action != 0 {
             return Err(format!(
                 "Unexpected facet cut {}: {:?}",
                 i, diamond_cut.facet_cuts
@@ -129,8 +137,7 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
         }
 
         // find facetToSelector slots for new facet address
-        let slot_count: i32 =
-            diamond_cut.facet_cuts[i + offset].selectors.len() as i32 / 8 + 1;
+        let slot_count: i32 = diamond_cut.facet_cuts[i + offset].selectors.len() as i32 / 8 + 1;
         insert_facet_to_selector_slots(
             &mut zk_era_slots_names,
             &diamond_cut.facet_cuts[i + offset].facet,
@@ -308,7 +315,7 @@ pub async fn parse_upgrade_tx(tx_hash: &str, rpc_url: &str) -> Result<(), String
     for (key, value) in zksync_era_storage_diff {
         if let ethers::types::Diff::Changed(change) = value {
             if let Some(name) = zk_era_slots_names.get(key) {
-                println!("\x1b[38;5;117m{}\x1b[0m", name);
+                println!("{}", name);
             } else {
                 println!("\x1b[38;5;117m0x{:02x}\x1b[0m", key);
             }
