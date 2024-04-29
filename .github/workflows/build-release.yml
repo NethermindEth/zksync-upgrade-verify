@@ -21,24 +21,24 @@ jobs:
       run: cargo install cross
       
     - name: Build for Linux x86_64
-      run: cross build --release --target x86_64-unknown-linux-gnu
+      run: cargo build --release --target=x86_64-unknown-linux-gnu
       
     - name: Create tar.gz for Linux x86_64
-      run: tar -czvf linux_x86_64.tar.gz -C ./target/release/ .
+      run: tar -czvf linux_x86_64.tar.gz -C ./target/x86_64-unknown-linux-gnu/release/ .
       if: runner.os == 'Linux'
 
     - name: Build for Windows x86_64
-      run: cross build --release --target x86_64-pc-windows-gnu
+      run: cargo build --release --target=aarch64-unknown-linux-gnu
       
     - name: Create zip for Windows x86_64
       run: zip -r windows_x86_64.zip ./target/x86_64-pc-windows-gnu/release/
       if: runner.os == 'Linux'
 
     - name: Build for Darwin x86_64
-      run: cross build --release --target x86_64-apple-darwin
+      run: cargo build --release --target x86_64-apple-darwin
       
     - name: Create tar.gz for Darwin x86_64
-      run: tar -czvf darwin_x86_64.tar.gz -C ./target/release/ .
+      run: tar -czvf darwin_x86_64.tar.gz -C ./target/x86_64-apple-darwin/release/ .
       if: runner.os == 'Linux'
 
     - name: Create Release
