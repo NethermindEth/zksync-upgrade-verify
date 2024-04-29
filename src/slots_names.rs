@@ -5,12 +5,7 @@ use ethers::{
     utils::keccak256,
 };
 
-// bytes4 padded 32 bytes . Diamond.DiamondStorageSlot
-const ENCODED_SELECTOR: [u8; 64] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    200, 252, 173, 141, 184, 77, 60, 193, 139, 76, 65, 213, 81, 234, 14, 230, 109, 213, 153, 205,
-    224, 104, 217, 152, 229, 125, 94, 9, 51, 44, 19, 27,
-];
+use crate::constants::ENCODED_SELECTOR;
 
 // convert bytes to hex string
 pub fn bytes_to_hex_string(bytes: &[u8]) -> String {
@@ -23,7 +18,7 @@ pub fn bytes_to_hex_string(bytes: &[u8]) -> String {
 
 // add one to big number
 // no overflow checks
-fn add_one_to_big_number(number: &mut [u8]) {
+pub fn add_one_to_big_number(number: &mut [u8]) {
     let mut carry = 1;
 
     for byte in number.iter_mut().rev() {
@@ -59,7 +54,6 @@ pub fn insert_facets_and_isfrozen_slots(
             slot_names_map.insert(
                 H256(faucet_arr_slot),
                 format!("\x1b[38;5;117mDimondStorage.facets[{}]\n \x1b[38;5;115mThe array of all unique facet addresses that belong to the diamond proxy\x1b[0m", i),
-                
             );
             // increase current storage slot by one
             add_one_to_big_number(&mut faucet_arr_slot);
