@@ -15,7 +15,6 @@ jobs:
 
     strategy:
       matrix:
-        # You can add more, for any target you'd like!
         include:
           - build: linux
             os: ubuntu-latest
@@ -34,37 +33,23 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Get the release version from the tag
-        shell: bash
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Install Rust
-        # Or @nightly if you want
-        uses: dtolnay/rust-toolchain@stable
-        # Arguments to pass in
+        uses: actions-rs/toolchain@v1
         with:
-          # Make Rust compile to our target (defined in the matrix)
-          targets: ${{ matrix.target }}
+          toolchain: stable
+          override: true
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --verbose --release --target ${{ matrix.target }}
+        run: cargo build --verbose --release --target ${{ matrix.target }}
 
-      - name: Build archive
-        shell: bash
+      - name: Archive binary
         run: |
-          # Replace with the name of your binary
-          binary_name="<BINARY_NAME>"
-
+          binary_name="zksync-upgrade-verifier"
           dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
-          mkdir "$dirname"
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv "target/${{ matrix.target }}/release" "$dirname"
-          else
-            mv "target/${{ matrix.target }}/release" "$dirname"
-          fi
+          mkdir -p "$dirname"
+          mv "target/${{ matrix.target }}/release/$binary_name" "$dirname/"
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             7z a "$dirname.zip" "$dirname"
@@ -77,5 +62,5 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            ${{ env.ASSET }}
+          files: ${{ env.ASSET }}
+          tag_name: ${{ env.VERSION }}
