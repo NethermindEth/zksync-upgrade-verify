@@ -68,14 +68,6 @@ jobs:
         with:
           path: releases
 
-      - name: Create a GitHub release
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body: "Release for version ${{ github.ref_name }}"
-
       - name: Upload assets to release
         uses: softprops/action-gh-release@v1
         with:
