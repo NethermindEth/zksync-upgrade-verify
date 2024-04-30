@@ -20,9 +20,6 @@ jobs:
 
             aarch64-pc-windows-msvc,
             x86_64-pc-windows-msvc,
-
-            aarch64-apple-darwin,
-            x86_64-apple-darwin,
           ]
 
     steps:
@@ -36,7 +33,11 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Build project
-        run: cargo build --release --target ${{ matrix.target }}
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
 
       - name: Package binary
         run: |
