@@ -1,70 +1,99 @@
-name: Create Release with Compiled Binaries
+name: Release
 
 on:
   push:
     tags:
-      - '*'
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    name: Build Binaries
-    runs-on: ubuntu-latest
-    
+  build-and-upload:
+    name: Build and upload
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # You can add more, for any target you'd like!
+        include:
+          - build: linux
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+
+          - build: macos
+            os: macos-latest
+            target: x86_64-apple-darwin
+
+          - build: windows-msvc
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+
+          - build: linux-gnu
+            target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+
+          - build: aarch-linux-gnu
+            target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+
+          - build: aarch-linux-musl
+            target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+
+          - build: aarch-apple-darwin
+            target: aarch64-apple-darwin
+            os: macos-latest
+
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-      
-    - name: Set up Rust
-      uses: actions/setup-rust@v1
-      
-    - name: Install cross
-      run: cargo install cross
-      
-    - name: Build for Linux x86_64
-      run: cargo build --release --target=x86_64-unknown-linux-gnu
-      
-    - name: Create tar.gz for Linux x86_64
-      run: tar -czvf linux_x86_64.tar.gz -C ./target/x86_64-unknown-linux-gnu/release/ .
-      if: runner.os == 'Linux'
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Build for Windows x86_64
-      run: cargo build --release --target=aarch64-unknown-linux-gnu
-      
-    - name: Create zip for Windows x86_64
-      run: zip -r windows_x86_64.zip ./target/x86_64-pc-windows-gnu/release/
-      if: runner.os == 'Linux'
+      - name: Get the release version from the tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-    - name: Build for Darwin x86_64
-      run: cargo build --release --target x86_64-apple-darwin
-      
-    - name: Create tar.gz for Darwin x86_64
-      run: tar -czvf darwin_x86_64.tar.gz -C ./target/x86_64-apple-darwin/release/ .
-      if: runner.os == 'Linux'
+      - name: Install Rust
+        # Or @nightly if you want
+        uses: dtolnay/rust-toolchain@stable
+        # Arguments to pass in
+        with:
+          # Make Rust compile to our target (defined in the matrix)
+          targets: ${{ matrix.target }}
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+      - name: Build Binaries
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --verbose --release --target ${{ matrix.target }}
 
-    - name: Upload Release Assets
-      id: upload-release-assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: |
-          ./linux_x86_64.tar.gz
-          ./windows_x86_64.zip
-          ./darwin_x86_64.tar.gz
-        asset_name: |
-          linux_x86_64.tar.gz
-          windows_x86_64.zip
-          darwin_x86_64.tar.gz
-        asset_content_type: application/gzip
+      - name: Build archive
+        shell: bash
+        run: |
+          # Replace with the name of your binary
+          binary_name="zksync-upgrade-verify"
+
+          dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
+          mkdir "$dirname"
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            mv "target/${{ matrix.target }}/release/$binary_name.exe" "$dirname"
+          else
+            mv "target/${{ matrix.target }}/release/$binary_name" "$dirname"
+          fi
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a "$dirname.zip" "$dirname"
+            echo "ASSET=$dirname.zip" >> $GITHUB_ENV
+          else
+            tar -czf "$dirname.tar.gz" "$dirname"
+            echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
+          fi
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.ASSET }}
