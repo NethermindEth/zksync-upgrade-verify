@@ -14,6 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         # You can add more, for any target you'd like!
         include:
@@ -45,7 +46,12 @@ jobs:
           # Make Rust compile to our target (defined in the matrix)
           targets: ${{ matrix.target }}
 
-      - name: Build
+      - name: Build windows binaries
+        if: startsWith(matrix.os, 'windows')
+        run: CROSS_CONTAINER_OPTS="--platform linux/amd64" docker buildx create --use && CROSS_CONTAINER_OPTS="--platform linux/amd64" docker buildx build --verbose --release --target x86_64-pc-windows-gnu
+      
+      - name: Build linux & mac binaries
+        if: startsWith(matrix.os, 'linux') || startsWith(matrix.os, 'macos')
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
