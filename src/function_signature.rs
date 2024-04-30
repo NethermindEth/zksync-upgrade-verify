@@ -15,3 +15,16 @@ impl FunctionSignature for Bytes {
         [bytes[0], bytes[1], bytes[2], bytes[3]]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ethers::types::Bytes;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_sig() {
+        let bytes = Bytes::from_str("0x12345678ab09").unwrap();
+        assert_eq!(bytes.sig(), [0x12, 0x34, 0x56, 0x78]);
+    }
+}

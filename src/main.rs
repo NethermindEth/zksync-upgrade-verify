@@ -24,8 +24,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Get upgrade transaction info
-    UpgradeInfo {
+    /// The command provides detailed insights into executed updates.
+    History {
         /// Ethereum JSON-RPC endpoint
         #[arg(long = "rpc-url", short = 'r', required = true)]
         rpc_url: String,
@@ -34,31 +34,19 @@ enum Commands {
         tx_hash: String,
     },
     /// Get upgrade proposal info. Run proposal-calldata first and then proposal-trace
-    ProposalInfo {
+    Proposal {
         /// Ethereum JSON-RPC endpoint
-        #[arg(long = "rpc-url", short = 'r', required = true)]
+        #[arg(long = "rpc-url", short = 'u', required = true)]
         rpc_url: String,
         /// Transaction hash
         #[arg(long = "tx-hash", short = 't', required = true)]
         tx_hash: String,
-    },
-    /// Get upgrade proposal calldata
-    ProposalCalldata {
-        /// Ethereum JSON-RPC endpoint
-        #[arg(long = "rpc-url", short = 'r', required = true)]
-        rpc_url: String,
-        /// Transaction hash
-        #[arg(long = "tx-hash", short = 't', required = true)]
-        tx_hash: String,
-    },
-    /// Emulate upgrade proposal transaction and get storage slots changes
-    ProposalTrace {
-        /// Ethereum JSON-RPC endpoint
-        #[arg(long = "rpc-url", short = 'r', required = true)]
-        rpc_url: String,
-        /// Transaction hash
-        #[arg(long = "tx-hash", short = 't', required = true)]
-        tx_hash: String,
+        /// Set this flag to skip decoding of transaction trace.
+        #[arg(long = "skip-trace")]
+        skip_trace: bool,
+        /// Set this flag to skip decoding of transaction calldata.
+        #[arg(long = "skip-calldata")]
+        skip_calldata: bool,
     },
 }
 
@@ -66,27 +54,21 @@ enum Commands {
 async fn main() {
     let cli = Cli::parse();
     match &cli.command {
-        Commands::UpgradeInfo { rpc_url, tx_hash } => {
+        Commands::History { rpc_url, tx_hash } => {
             if let Err(err) = parse_upgrade_tx(tx_hash, rpc_url).await {
                 eprintln!("Parse upgrade transaction error: {}", err);
             }
         }
-        Commands::ProposalInfo { rpc_url, tx_hash } => {
-            if let Err(err) = parse_proposal_call(tx_hash, rpc_url).await {
-                eprintln!("Parse proposal calldata error: {}", err);
+        Commands::Proposal { rpc_url, tx_hash, skip_trace, skip_calldata } => {
+            if !skip_calldata {
+                if let Err(err) = parse_proposal_call(tx_hash, rpc_url).await {
+                    eprintln!("Parse proposal calldata error: {}", err);
+                }
             }
-            if let Err(err) = parse_proposal_trace(tx_hash, rpc_url).await {
-                eprintln!("Parse proposal trace error: {}", err);
-            }
-        }
-        Commands::ProposalCalldata { rpc_url, tx_hash } => {
-            if let Err(err) = parse_proposal_call(tx_hash, rpc_url).await {
-                eprintln!("Parse proposal calldata error: {}", err);
-            }
-        }
-        Commands::ProposalTrace { rpc_url, tx_hash } => {
-            if let Err(err) = parse_proposal_trace(tx_hash, rpc_url).await {
-                eprintln!("Parse proposal trace error: {}", err);
+            if !skip_trace {
+                if let Err(err) = parse_proposal_trace(tx_hash, rpc_url).await {
+                    eprintln!("Parse proposal trace error: {}", err);
+                }
             }
         }
     };

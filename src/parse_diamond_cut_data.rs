@@ -10,7 +10,7 @@ use crate::{
 use crate::function_signature::FunctionSignature;
 use ethers::core::abi::AbiDecode;
 
-// Get and print Dimond Cut data
+// Parse and print Dimond Cut data
 pub fn parse_diamond_cut_data(diamond_cut: &DiamondCutData) -> Result<(), String> {
     // check diamond_cut.facet_cuts and save them (check on slots?)
     // we want to see see Faucet delete/add
