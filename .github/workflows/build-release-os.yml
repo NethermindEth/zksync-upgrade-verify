@@ -48,7 +48,7 @@ jobs:
 
       - name: Build windows binaries
         if: startsWith(matrix.os, 'windows')
-        run: CROSS_CONTAINER_OPTS="--platform linux/amd64" docker buildx create --use && CROSS_CONTAINER_OPTS="--platform linux/amd64" docker buildx build --verbose --release --target x86_64-pc-windows-gnu
+        run: CROSS_CONTAINER_OPTS="--platform linux/amd64" cross build --verbose --release --target x86_64-pc-windows-gnu
       
       - name: Build linux & mac binaries
         if: startsWith(matrix.os, 'linux') || startsWith(matrix.os, 'macos')
