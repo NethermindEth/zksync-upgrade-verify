@@ -5,10 +5,13 @@ mod l2_contracts_names;
 mod parse_diamond_cut_data;
 mod parse_proposal_call;
 mod parse_proposal_trace;
+mod parse_upgrade_call;
+mod parse_upgrade_call_new;
 mod parse_upgrade_tx;
 mod slots_names;
 mod strings;
 mod upgrade_abi;
+mod upgrade_abi_new;
 
 use crate::parse_proposal_call::parse_proposal_call;
 use crate::parse_proposal_trace::parse_proposal_trace;
@@ -59,7 +62,12 @@ async fn main() {
                 eprintln!("Parse upgrade transaction error: {}", err);
             }
         }
-        Commands::Proposal { rpc_url, tx_hash, skip_trace, skip_calldata } => {
+        Commands::Proposal {
+            rpc_url,
+            tx_hash,
+            skip_trace,
+            skip_calldata,
+        } => {
             if !skip_calldata {
                 if let Err(err) = parse_proposal_call(tx_hash, rpc_url).await {
                     eprintln!("Parse proposal calldata error: {}", err);

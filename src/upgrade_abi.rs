@@ -17,6 +17,11 @@ abigen!(
         
         struct ForceDeployment {bytes32 bytecodeHash;address newAddress;bool callConstructor;uint256 value;bytes input;}
         function forceDeployOnAddresses(ForceDeployment[] calldata _deployParams) external
+
+        struct L2CanonicalTransaction {uint256 txType;uint256 from;uint256 to;uint256 gasLimit;uint256 gasPerPubdataByteLimit;uint256 maxFeePerGas;uint256 maxPriorityFeePerGas;uint256 paymaster;uint256 nonce;uint256 value;uint256[4] reserved;bytes data;bytes signature;uint256[] factoryDeps;bytes paymasterInput;bytes reservedDynamic;}
+        struct VerifierParams {bytes32 recursionNodeLevelVkHash;bytes32 recursionLeafLevelVkHash;bytes32 recursionCircuitsSetVksHash;}
+        struct ProposedUpgrade {L2CanonicalTransaction l2ProtocolUpgradeTx;bytes[] factoryDeps;bytes32 bootloaderHash;bytes32 defaultAccountHash;address verifier;VerifierParams verifierParams;bytes l1ContractsUpgradeCalldata;bytes postUpgradeCalldata;uint256 upgradeTimestamp;uint256 newProtocolVersion;}
+  
   ]"#,
 );
 /// This module was auto-generated with ethers-rs Abigen.
