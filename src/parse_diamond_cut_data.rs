@@ -1,7 +1,5 @@
-use crate::function_signature::FunctionSignature;
 use crate::{
-    parse_upgrade_call::parse_upgrade_call, parse_upgrade_call_new::parse_upgrade_call_new,
-    slots_names::get_facet_name, upgrade_abi::DiamondCutData,
+    slots_names::get_facet_name, upgrade_abi::DiamondCutData, upgrade_call_data::UpgradeCallData,
 };
 
 // Parse and print Dimond Cut data
@@ -46,11 +44,8 @@ pub fn parse_diamond_cut_data(diamond_cut: &DiamondCutData) -> Result<(), String
 
     // delecatecall upgrade contract (init_address)
     // e.g. https://github.com/matter-labs/era-contracts/blob/4aa7006153ad571643342dff22c16eaf4a70fdc1/l1-contracts/contracts/upgrades/Upgrade_v1_4_1.sol
-    match diamond_cut.init_calldata.sig() {
-        [0x08, 0x28, 0x4e, 0x57] => parse_upgrade_call_new(&diamond_cut.init_calldata)?,
-        [0x1e, 0xd8, 0x24, 0xa0] => parse_upgrade_call(&diamond_cut.init_calldata)?,
-        _ => return Err("Unknown init method signature".to_string()),
-    };
+    let upgrade_call_data = UpgradeCallData::from_calldata(&diamond_cut.init_calldata)?;
+    println!("{}", upgrade_call_data);
 
     Ok(())
 }

@@ -1,9 +1,16 @@
 # Table of Contents
+- [Overview](#overview)
 - [How to use with zkSync Protocol Upgrade Tool](#how-to-use-with-zksync-protocol-upgrade-tool)
 - [Commands](#commands)
   - [proposal](#proposal)
   - [history](#history)
 - [How to Compile](#how-to-compile)
+
+# Overview
+The zkSync Upgrade Verification Tool is a powerful utility designed to facilitate the inspection and verification of zkSync protocol upgrades. Built to enhance transparency and security, this tool empowers users to comprehensively examine proposed and executed upgrades within the zkSync ecosystem.
+Features:
+- Proposal Inspection. The `proposal` command enables detailed examination of transparent upgrade proposals within the zkSync protocol. Easily decode transaction calldata to understand the parameters and intentions behind each upgrade proposal. Trace upgrade proposal transactions to inspect contract storage changes post-upgrade.
+- History Examination. The `history` command offers comprehensive insights into executed zkSync protocol upgrades. Decode upgrade transactions and show changes in storage slots to understand the specific changes introduced by each upgrade.
 
 # How to use with zkSync Protocol Upgrade Tool
 
