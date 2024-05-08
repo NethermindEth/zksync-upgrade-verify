@@ -332,11 +332,11 @@ pub async fn parse_proposal_trace(tx_hash: &str, rpc_url: &str) -> Result<(), St
             let title = get_selector_to_facet_slots1_string(&bytes_to_hex_string(&selector));
             print_slot_value_with_action(&H256(slot), pre, post, &title, None::<fn(&H256, &H256)>);
         }
-        
+
         // Print unknown slots
-        for (slot,value) in pre {
+        for (slot, value) in pre {
             if !known_slots.contains(&slot) {
-                let title = format!("\x1b[38;5;117m0x{:02x}\x1b[0m",slot);
+                let title = format!("\x1b[38;5;117m0x{:02x}\x1b[0m", slot);
                 let post_value = post.get(slot).unwrap_or(&H256(ZERO));
                 println!(
                     "{}:\n  from:0x{:02x}\n    to:0x{:02x}",
@@ -345,12 +345,14 @@ pub async fn parse_proposal_trace(tx_hash: &str, rpc_url: &str) -> Result<(), St
                 known_slots.insert(*slot);
             }
         }
-        for (slot,value) in post {
+        for (slot, value) in post {
             if !known_slots.contains(&slot) {
-                let title = format!("\x1b[38;5;117m0x{:02x}\x1b[0m",slot);
+                let title = format!("\x1b[38;5;117m0x{:02x}\x1b[0m", slot);
                 println!(
                     "{}:\n  from:0x{:02x}\n    to:0x{:02x}",
-                    title, H256(ZERO), value
+                    title,
+                    H256(ZERO),
+                    value
                 );
             }
         }
