@@ -11,7 +11,10 @@ pub fn get_selector_to_facet_slots0_string(selector: &str) -> String {
     return format!("\x1b[38;5;117mselectorToFacet[ 0x{} ].facetAddress\n \x1b[38;5;115mAddress of the facet which is connected with selector\x1b[0m", selector);
 }
 pub fn get_selector_to_facet_slots1_string(selector: &str) -> String {
-    return format!("\x1b[38;5;117mselectorToFacet[ 0x{} ].(selectorPosition,isFreezable)\n \x1b[38;5;115mselectorPosition index in `FacetToSelectors.selectors` array, where is selector stored\nisFreezable denotes whether the selector can be frozen.\x1b[0m", selector);
+    return format!("\x1b[38;5;117mselectorToFacet[ 0x{} ].(selectorPosition,isFreezable)\n \x1b[38;5;115mselectorPosition index in `FacetToSelectors.selectors` array, where is selector stored\nisFreezable denotes whether the selector can be frozen\x1b[0m", selector);
+}
+pub fn get_facet_to_selectors_length(facet: &str) -> String {
+    return format!("\x1b[38;5;117mfacetToSelectors[ 0x{} ].selectors[].length\n \x1b[38;5;115mThe length of the selectors list for all selectors belonging to the facet\x1b[0m", facet);
 }
 
 pub const DIAMOND_STORAGE_ISFROZEN: &str = "\x1b[38;5;117mDimondStorage.isFrozen\n \x1b[38;5;115mDenotes whether the diamond proxy is frozen and all freezable facets are not accessible\x1b[0m";
@@ -42,21 +45,21 @@ pub const PRSISTENT_SLOT_NAMES: [&str; 40] = [
     "\x1b[38;5;117mverifierParams.recursionNodeLevelVkHash\n \x1b[38;5;115mPart of the configuration parameters of ZKP circuits. Used as an input for the verifier smart contract\x1b[0m",
     "\x1b[38;5;117mverifierParams.recursionLeafLevelVkHash\n \x1b[38;5;115mPart of the configuration parameters of ZKP circuits. Used as an input for the verifier smart contract\x1b[0m",
     "\x1b[38;5;117mverifierParams.recursionCircuitsSetVksHash\n \x1b[38;5;115mPart of the configuration parameters of ZKP circuits. Used as an input for the verifier smart contract\x1b[0m",
-    "\x1b[38;5;117ml2BootloaderBytecodeHash\n \x1b[38;5;115mBytecode hash of bootloader program. Used as an input to zkp-circuit.\x1b[0m",
-    "\x1b[38;5;117ml2DefaultAccountBytecodeHash\n \x1b[38;5;115mBytecode hash of default account (bytecode for EOA). Used as an input to zkp-circuit.\x1b[0m",
-    "\x1b[38;5;117mzkPorterIsAvailable\n \x1b[38;5;115mIndicates that the porter may be touched on L2 transactions. Used as an input to zkp-circuit.\x1b[0m",
-    "\x1b[38;5;117mpriorityTxMaxGasLimit\n \x1b[38;5;115mThe maximum number of the L2 gas that a user can request for L1 -> L2 transactions. This is the maximum number of L2 gas that is available for the \"body\" of the transaction, i.e. without overhead for proving the batch.\x1b[0m",
+    "\x1b[38;5;117ml2BootloaderBytecodeHash\n \x1b[38;5;115mBytecode hash of bootloader program. Used as an input to zkp-circuit\x1b[0m",
+    "\x1b[38;5;117ml2DefaultAccountBytecodeHash\n \x1b[38;5;115mBytecode hash of default account (bytecode for EOA). Used as an input to zkp-circuit\x1b[0m",
+    "\x1b[38;5;117mzkPorterIsAvailable\n \x1b[38;5;115mIndicates that the porter may be touched on L2 transactions. Used as an input to zkp-circuit\x1b[0m",
+    "\x1b[38;5;117mpriorityTxMaxGasLimit\n \x1b[38;5;115mThe maximum number of the L2 gas that a user can request for L1 -> L2 transactions. This is the maximum number of L2 gas that is available for the \"body\" of the transaction, i.e. without overhead for proving the batch\x1b[0m",
     "\x1b[38;5;117m__DEPRECATED_upgrades.proposedUpgradeHash\n \x1b[38;5;115mStorage of variables needed for upgrade facet\x1b[0m",
     "\x1b[38;5;117m__DEPRECATED_upgrades.slot(1)\n \x1b[38;5;115mStorage of variables needed for upgrade facet\x1b[0m",
     "\x1b[38;5;117misEthWithdrawalFinalized\n \x1b[38;5;115mA mapping L2 batch number => message number => flag. The L2 -> L1 log is sent for every withdrawal, so this mapping is serving as a flag to indicate that the message was already processed. Used to indicate that eth withdrawal was already processed\x1b[0m",
     "\x1b[38;5;117m__DEPRECATED_lastWithdrawalLimitReset\n \x1b[38;5;115mThe most recent withdrawal time and amount reset\x1b[0m",
     "\x1b[38;5;117m__DEPRECATED_withdrawnAmountInWindow\n \x1b[38;5;115mThe accumulated withdrawn amount during the withdrawal limit window\x1b[0m",
     "\x1b[38;5;117m__DEPRECATED_totalDepositedAmountPerUser\n \x1b[38;5;115mA mapping user address => the total deposited amount by the user\x1b[0m",
-    "\x1b[38;5;117mprotocolVersion\n \x1b[38;5;115mStores the protocol version. Note, that the protocol version may not only encompass changes to the smart contracts, but also to the node behavior.\x1b[0m",
-    "\x1b[38;5;117ml2SystemContractsUpgradeTxHash\n \x1b[38;5;115mHash of the system contract upgrade transaction. If 0, then no upgrade transaction needs to be done.\x1b[0m",
-    "\x1b[38;5;117ml2SystemContractsUpgradeBatchNumber\n \x1b[38;5;115mBatch number where the upgrade transaction has happened. If 0, then no upgrade transaction has happened yet.\x1b[0m",
+    "\x1b[38;5;117mprotocolVersion\n \x1b[38;5;115mStores the protocol version. Note, that the protocol version may not only encompass changes to the smart contracts, but also to the node behavior\x1b[0m",
+    "\x1b[38;5;117ml2SystemContractsUpgradeTxHash\n \x1b[38;5;115mHash of the system contract upgrade transaction. If 0, then no upgrade transaction needs to be done\x1b[0m",
+    "\x1b[38;5;117ml2SystemContractsUpgradeBatchNumber\n \x1b[38;5;115mBatch number where the upgrade transaction has happened. If 0, then no upgrade transaction has happened yet\x1b[0m",
     "\x1b[38;5;117madmin\n \x1b[38;5;115m Address which will exercise non-critical changes to the Diamond Proxy (changing validator set & unfreezing)\x1b[0m",
     "\x1b[38;5;117mpendingAdmin\n \x1b[38;5;115mAddress that the governor or admin proposed as one that will replace admin role\x1b[0m",
-    "\x1b[38;5;117mfeeParams\n \x1b[38;5;115mFee params used to derive gasPrice for the L1->L2 transactions. For L2 transactions, the bootloader gives enough freedom to the operator.\x1b[0m",
-    "\x1b[38;5;117mblobVersionedHashRetriever\n \x1b[38;5;115mAddress of the blob versioned hash getter smart contract used for EIP-4844 versioned hashes.\x1b[0m",
+    "\x1b[38;5;117mfeeParams\n \x1b[38;5;115mFee params used to derive gasPrice for the L1->L2 transactions. For L2 transactions, the bootloader gives enough freedom to the operator\x1b[0m",
+    "\x1b[38;5;117mblobVersionedHashRetriever\n \x1b[38;5;115mAddress of the blob versioned hash getter smart contract used for EIP-4844 versioned hashes\x1b[0m",
 ];

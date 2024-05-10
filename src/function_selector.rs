@@ -1,13 +1,13 @@
 use ethers::types::Bytes;
 
 // Decode function signature from bytes
-pub trait FunctionSignature {
+pub trait FunctionSelector {
     // get the first four bytes
-    fn sig(&self) -> [u8; 4];
+    fn selector(&self) -> [u8; 4];
 }
 // Implement decoding of function signature from bytes
-impl FunctionSignature for Bytes {
-    fn sig(&self) -> [u8; 4] {
+impl FunctionSelector for Bytes {
+    fn selector(&self) -> [u8; 4] {
         if self.len() < 4 {
             return [0; 4];
         }
@@ -23,8 +23,8 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn test_sig() {
+    fn test_selector() {
         let bytes = Bytes::from_str("0x12345678ab09").unwrap();
-        assert_eq!(bytes.sig(), [0x12, 0x34, 0x56, 0x78]);
+        assert_eq!(bytes.selector(), [0x12, 0x34, 0x56, 0x78]);
     }
 }

@@ -69,6 +69,8 @@ Here are some examples of `executeUpgrade` transactions that can be inspected us
 
 - `--rpc-url`: Specifies the Ethereum JSON-RPC endpoint.
 - `--tx-hash:` Specifies the upgrade transaction hash.
+- `--skip_trace`: Set this flag to skip decoding of transaction trace.
+- `--skip_calldata`: Set this flag to skip decoding of transaction calldata.
 
 #### How to run
 
