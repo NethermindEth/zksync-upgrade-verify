@@ -1,6 +1,46 @@
+use crate::facet_names::get_facet_name;
+use crate::upgrade_abi::Operation;
 use crate::{
-    slots_names::get_facet_name, upgrade_abi::DiamondCutData, upgrade_call_data::UpgradeCallData,
+    constants::ZKSYNC_ERA,
+    function_selector::FunctionSelector,
+    upgrade_abi::{DiamondCutData, ExecuteUpgradeCall, ExecuteUpgradeWithProposalSaltCall},
+    upgrade_call_data::UpgradeCallData,
 };
+use ethers::core::abi::AbiDecode;
+use ethers::types::Bytes;
+
+pub fn get_dimond_cut_call(operation: &Operation) -> Result<Bytes, String> {
+    if operation.calls[0].target != ZKSYNC_ERA
+        || operation.calls.len() != 1
+        || operation.calls[0].data.selector() != [0xa9, 0xf6, 0xd9, 0x41]
+    {
+        return Err(format!("Unexpected governance call: {:?}", operation));
+    }
+    let tx_input = operation.calls[0].data.clone();
+    Ok(tx_input)
+}
+
+pub fn parse_diamond_cut_call(tx_input: &Bytes) -> Result<(), String> {
+    // Decode transaction to zkSync Era Diamond Proxy
+    let diamond_cut = match tx_input.selector() {
+        //AdminFacet - new
+        [169, 246, 217, 65] => {
+            ExecuteUpgradeCall::decode(tx_input.clone())
+                .map_err(|err| err.to_string())?
+                .diamond_cut
+        }
+        //DiamondCutFacet - old
+        [54, 212, 235, 132] => {
+            ExecuteUpgradeWithProposalSaltCall::decode(tx_input.clone())
+                .map_err(|err| err.to_string())?
+                .diamond_cut
+        }
+        _ => return Err("Unknown facet function selector".to_string()),
+    };
+
+    // Parse and print Dimond Cut data
+    parse_diamond_cut_data(&diamond_cut)
+}
 
 // Parse and print Dimond Cut data
 pub fn parse_diamond_cut_data(diamond_cut: &DiamondCutData) -> Result<(), String> {

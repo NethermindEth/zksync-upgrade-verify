@@ -1,10 +1,10 @@
 use std::fmt;
 
-use crate::function_signature::FunctionSignature;
+use crate::function_selector::FunctionSelector;
 use crate::{
     constants::{TX_TYPE_UPGGADE, ZERO},
     l2_contracts_names::get_system_contract_name,
-    slots_names::bytes_to_hex_string,
+    utils::bytes_to_hex_string,
     upgrade_abi::{ForceDeployOnAddressesCall, UpgradeCall},
     upgrade_abi_new::UpgradeCall as UpgradeCallNew,
 };
@@ -32,7 +32,7 @@ pub struct UpgradeCallData {
 
 impl UpgradeCallData {
     pub fn from_calldata(calldata: &Bytes) -> Result<Self, String> {
-        match calldata.sig() {
+        match calldata.selector() {
             [0x08, 0x28, 0x4e, 0x57] => UpgradeCallData::from_upgrade_call(&calldata),
             [0x1e, 0xd8, 0x24, 0xa0] => {
                 UpgradeCallData::from_upgrade_call_with_allowlist(&calldata)
